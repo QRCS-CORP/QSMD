@@ -1,4 +1,4 @@
-# Quantum Secure Messaging Protocol - SIMPLEX
+# Quantum Secure Messaging Protocol - DUPLEX
 
 ## Introduction
 
@@ -15,10 +15,10 @@
 [![Security Standard](https://img.shields.io/static/v1?label=Security%20Standard&message=MISRA&color=blue)](https://misra.org.uk/)
 [![Target Industry](https://img.shields.io/static/v1?label=Target%20Industry&message=Communications&color=brightgreen)](#)
 
-**QSMP SIMPLEX** is a post-quantum secure messaging protocol that integrates key exchange, server authentication, and encrypted tunnel establishment into a single, self-contained specification. Engineered from the ground up to address the cryptographic challenges posed by quantum computing, QSMP avoids the design compromises and legacy constraints of protocols such as TLS, SSH, and PGP. There is no algorithm negotiation, no versioning attack surface, and no backward compatibility with classical-only primitives.
+**QSMP DUPLEX** is a post-quantum secure messaging protocol providing mutual authentication and encrypted tunnel establishment between two peers. Both parties hold long-term asymmetric signing key pairs, and each verifies the other's identity before any secret material is exchanged. Engineered from the ground up to address the cryptographic challenges posed by quantum computing, QSMD avoids the design compromises and legacy constraints of protocols such as TLS, SSH, and PGP. There is no algorithm negotiation, no versioning attack surface, and no backward compatibility with classical-only primitives.
 
-> This repository contains the **SIMPLEX** variant of QSMP: a one-way trust model optimised for high-performance client-server deployments.  
-> The **DUPLEX** (mutual authentication, peer-to-peer) variant is maintained in a [separate repository](https://github.com/QRCS-CORP/QSMP-Duplex).
+> This repository contains the **DUPLEX** variant of QSMP: a mutual authentication model designed for peer-to-peer and high-security client-server deployments targeting 512-bit security.  
+> The **SIMPLEX** (one-way trust, optimised throughput) variant is maintained in a [separate repository](https://github.com/QRCS-CORP/QSMP).
 
 ---
 
@@ -26,55 +26,80 @@
 
 | Resource | Description |
 |---|---|
-| [Help Documentation](https://qrcs-corp.github.io/QSMP/) | Full API and usage reference |
-| [Summary Document](https://qrcs-corp.github.io/QSMP/pdf/qsmp_summary.pdf) | Protocol overview and design rationale |
-| [Protocol Specification](https://qrcs-corp.github.io/QSMP/pdf/qsmp_specification.pdf) | Complete formal protocol definition |
-| [Formal Analysis](https://qrcs-corp.github.io/QSMP/pdf/qsmp_formal.pdf) | Security proofs and formal verification |
-| [Implementation Analysis](https://qrcs-corp.github.io/QSMP/pdf/qsmp_analysis.pdf) | Implementation security considerations |
-| [Integration Guide](https://qrcs-corp.github.io/QSMP/pdf/qsmp_integration.pdf) | Deployment and integration instructions |
+| [Help Documentation](https://qrcs-corp.github.io/QSMD/) | Full API and usage reference |
+| [Summary Document](https://qrcs-corp.github.io/QSMD/pdf/qsmd_summary.pdf) | Protocol overview and design rationale |
+| [Protocol Specification](https://qrcs-corp.github.io/QSMD/pdf/qsmd_specification.pdf) | Complete formal protocol definition |
+| [Formal Analysis](https://qrcs-corp.github.io/QSMD/pdf/qsmd_formal.pdf) | Security proofs and formal verification |
+| [Implementation Analysis](https://qrcs-corp.github.io/QSMD/pdf/qsmd_analysis.pdf) | Implementation security considerations |
+| [Integration Guide](https://qrcs-corp.github.io/QSMD/pdf/qsmd_integration.pdf) | Deployment and integration instructions |
 
 ---
 
 ## Overview
 
-QSMP SIMPLEX establishes a 256-bit secure, bidirectional, authenticated encryption tunnel between a client and server using a **one-way trust model**: the client authenticates the server using a pre-distributed public verification key, and both parties derive shared session keys from a post-quantum KEM exchange. The complete handshake completes in **two round trips** with no session tickets, no certificate chains, and no runtime cipher negotiation.
+QSMP DUPLEX establishes a 512-bit secure, bidirectional, authenticated encryption tunnel between a client and server using a **mutual trust model**: both parties hold long-term signing key pairs, and each verifies the other's public verification key — distributed out-of-band prior to connection — before any secret is encapsulated. Two independent shared secrets are derived from two separate KEM exchanges, and session keys are derived from both secrets combined with a rolling transcript hash. The complete handshake completes in **five passes** with no session tickets, no certificate chains, and no runtime cipher negotiation.
 
 The protocol is complete and self-contained. All cryptographic parameters are fixed at compile time for a given configuration, eliminating downgrade attacks and cipher-suite confusion by construction.
 
 ### Key Properties
 
-- **Post-quantum security** - all asymmetric operations use NIST-standardised post-quantum algorithms
-- **Two-round-trip handshake** - session establishment with minimal latency overhead
-- **Transcript binding** - session keys are derived from a rolling SHA3-256 hash of every exchanged message, cryptographically committing them to the complete handshake
-- **Explicit key confirmation** - the server's final transcript hash is encrypted and sent to the client; the session is not established unless both parties hold an identical transcript
-- **Forward secrecy** - symmetric ratchet via cSHAKE-256 refreshes session keys on demand without a new asymmetric exchange
-- **Anti-replay protection** - per-packet sequence counters and UTC timestamp validation on every received message
-- **Minimal attack surface** - no algorithm negotiation, no fallback cipher paths, no protocol versioning surface
-- **MISRA-C aligned** - structured for deployment in safety-critical and high-assurance environments
+- **Post-quantum security** — all asymmetric operations use NIST-standardised post-quantum algorithms
+- **Mutual authentication** — both client and server hold long-term signing key pairs; each verifies the other's identity before any encapsulation occurs
+- **Dual-secret key derivation** — session keys are derived from two independent KEM-encapsulated secrets combined with the transcript hash, providing defence in depth against single-primitive compromise
+- **512-bit security** — SHA3-512 transcript hashing, 64-byte session keys, and 64-byte MAC tags throughout
+- **Transcript binding** — session keys are derived from a rolling SHA3-512 hash of every exchanged message, cryptographically committing them to the complete handshake history
+- **Explicit key confirmation** — both parties independently encrypt the transcript hash and exchange it as the final handshake step; the session is not established unless both transcripts match exactly
+- **Forward secrecy** — symmetric ratchet via cSHAKE-512 refreshes session keys on demand without a new asymmetric exchange
+- **Optional asymmetric ratchet** — when `QSMD_ASYMMETRIC_RATCHET` is defined, full asymmetric rekeying is available, generating fresh encapsulation keys and deriving new session keys without terminating the connection
+- **Anti-replay protection** — per-packet sequence counters and UTC timestamp validation on every received message
+- **Minimal attack surface** — no algorithm negotiation, no fallback cipher paths, no protocol versioning surface
+- **MISRA-C aligned** — structured for deployment in safety-critical and high-assurance environments
 
 ---
 
 ## Cryptographic Primitives
 
-QSMP is built exclusively on algorithms from the NIST Post-Quantum Cryptography standardization process and NIST FIPS standards.
+QSMD is built exclusively on algorithms from the NIST Post-Quantum Cryptography standardization process and NIST FIPS standards.
 
 ### Key Encapsulation (KEM)
 
 | Algorithm | NIST Security Level | Standard |
 |---|---|---|
-| ML-KEM (Kyber) | 1 / 3 / 5 | NIST FIPS 203 |
-| Classic McEliece | 1 / 3 / 5 | NIST PQC Selected |
+| ML-KEM (Kyber) | 1 / 3 / 5 / 6 | NIST FIPS 203 |
+| Classic McEliece | 1 / 3 / 5 / 6 / 7 | NIST PQC Selected |
 
-ML-KEM or McEliece is used to encapsulate the session secret. A fresh ephemeral encapsulation key pair is generated by the server for each connection, and the private key is destroyed immediately after decapsulation.
+Each handshake performs two independent KEM exchanges — one from each peer — producing two separate shared secrets. Both secrets are combined with the session transcript hash to derive the final session keys. A fresh ephemeral encapsulation key pair is generated by each party for its respective exchange, and all private keys are destroyed immediately after decapsulation.
 
 ### Digital Signatures
 
 | Algorithm | NIST Security Level | Standard |
 |---|---|---|
 | ML-DSA (Dilithium) | 2 / 3 / 5 | NIST FIPS 204 |
-| SLH-DSA (SPHINCS+) | 2 / 3 / 5 | NIST FIPS 205 |
+| SLH-DSA (SPHINCS+) | 2 / 3 / 5 / 6 | NIST FIPS 205 |
 
-ML-DSA or SLH-DSA authenticates the server's ephemeral public encapsulation key during the handshake. The client verifies this signature against the server's pre-distributed public verification key before any secret is encapsulated.
+Both parties sign their ephemeral public encapsulation keys during the handshake. Each party verifies the peer's signature against the pre-distributed public verification key before accepting the encapsulation key. This ensures that neither party can be substituted by an active attacker, even if network traffic is fully controlled.
+
+> For maximum security, the McEliece / SPHINCS+ combination is recommended.  
+> For a balance of performance and security, Dilithium / Kyber or Dilithium / McEliece are recommended.
+
+### Supported Algorithm Combinations
+
+| KEM | Signature | Notes |
+|---|---|---|
+| Kyber-S1 | Dilithium-S1 | |
+| Kyber-S3 | Dilithium-S3 | |
+| Kyber-S5 | Dilithium-S5 | Recommended balanced configuration |
+| Kyber-S6 | Dilithium-S5 | |
+| McEliece-S1 | Dilithium-S1 | |
+| McEliece-S3 | Dilithium-S3 | |
+| McEliece-S5 | Dilithium-S5 | |
+| McEliece-S6 | Dilithium-S5 | |
+| McEliece-S7 | Dilithium-S5 | |
+| McEliece-S1 | SPHINCS+-S1 (f/s) | |
+| McEliece-S3 | SPHINCS+-S3 (f/s) | |
+| McEliece-S5 | SPHINCS+-S5 (f/s) | Recommended maximum-security configuration |
+| McEliece-S6 | SPHINCS+-S5 (f/s) | |
+| McEliece-S7 | SPHINCS+-S6 (f/s) | True 512-bit security with SPHINCS+ 512-bit option enabled in QSC |
 
 ### Symmetric AEAD Cipher
 
@@ -88,92 +113,96 @@ RCS operates on a 256-bit wide Rijndael state with a cryptographically strengthe
 
 | Primitive | Algorithm | Purpose |
 |---|---|---|
-| Hash | SHA3-256 | Transcript hashing, public key binding |
-| KDF | cSHAKE-256 | Session key derivation, symmetric ratchet |
+| Hash | SHA3-512 | Transcript hashing, public key binding |
+| KDF | cSHAKE-512 | Session key derivation, symmetric ratchet |
 | Entropy | ACP | RDRAND + system state, hashed with SHAKE-512 |
 
 ---
 
 ## Key Exchange Protocol
 
-The QSMP SIMPLEX handshake is a two-round authenticated key exchange. The server holds a long-term signing key pair; the client holds the server's public verification key, distributed out-of-band prior to connection.
+The QSMP DUPLEX handshake is a five-pass mutually authenticated key exchange. Both parties hold long-term signing key pairs. Each party's public verification key is distributed to the other out-of-band prior to connection.
 
 ### Trust Model
 ```
-Key Distribution (out-of-band)
+Key Distribution (out-of-band, both directions)
         │
-        │  Server generates signing keypair.
-        │  Public verification key (.qpkey) is
-        │  distributed to clients manually.
+        │  Client generates signing keypair.  Server generates signing keypair.
+        │  Each distributes their public verification key to the other.
         ▼
-    QSMP Server ──── signs ephemeral pubkey ────► Client
-                                                     │
-                                          Verifies signature using
-                                          pre-distributed verkey
+    Client ──── sends verkey_C ────► Server
+    Server ──── sends verkey_S ────► Client
+        │
+        │  During handshake:
+        │  Client verifies Server's signature using verkey_S
+        │  Server verifies Client's signature using verkey_C
 ```
 
 ### Exchange Sequence
 ```
 Legend:
-  C       = Client
-  S       = Server
-  H       = SHA3-256
-  KEM     = Key Encapsulation Mechanism
-  SIG     = ML-DSA or SLH-DSA Signature
-  cSHAKE  = Customizable SHAKE-256 KDF
-  sch     = Rolling transcript hash
-  pk_kem  = Ephemeral public encapsulation key
-  kid     = Key identifier
-  cfg     = Configuration string
+  C        = Client
+  S        = Server
+  H        = SHA3-512
+  KEM      = Key Encapsulation Mechanism
+  SIG      = ML-DSA or SLH-DSA Signature
+  cSHAKE   = Customizable SHAKE-512 KDF
+  sch      = Rolling transcript hash
+  pk_s     = Server ephemeral public encapsulation key
+  pk_c     = Client ephemeral public encapsulation key
+  cpta     = Ciphertext from client encapsulation (secret seca)
+  cptb     = Ciphertext from server encapsulation (secret secb)
+  kid      = Key identifier
+  cfg      = Configuration string
+  pvka     = Client public verification key
+  pvkb     = Server public verification key
+  sph      = Serialized packet header (includes UTC timestamp)
 
-Round 1  C → S :  kid || cfg
-                  sch₁ = H(cfg || kid || verkey)
+Pass 1  C → S :  kid || cfg || Ssk_C(H(kid || cfg || sph))
+                 sch₁ = H(cfg || pvka || pvkb)
+                 sch₁ = H(sch₁ || H(kid || cfg || sph))
 
-Round 2  S → C :  SIG(H(cfg || kid || pk_kem)) || pk_kem
-                  sch₂ = H(sch₁ || H(cfg || kid || pk_kem))
+Pass 2  S → C :  Ssk_S(H(pk_s || sph)) || pk_s
+                 sch₂ = H(sch₁ || H(pk_s || sph))
 
-Round 3  C → S :  KEM_Encaps(pk_kem) → ciphertext || secret
-                  sch₃ = H(sch₂ || ciphertext)
-                  session_keys = cSHAKE(secret, sch₃)
+Pass 3  C → S :  cpta || pk_c || Ssk_C(H(pk_c || cpta || sph))
+                 seca = KEM_Encaps(pk_s)
+                 sch₃ = H(sch₂ || H(pk_c || cpta || sph))
 
-Confirm  S → C :  Ek(sch₃)
-                  C decrypts and verifies sch₃ matches local transcript
-                  Session established only on exact match
+Pass 4  S → C :  Ssk_S(H(cptb || sph)) || cptb
+                 seca = KEM_Decaps(cpta)
+                 secb = KEM_Encaps(pk_c)
+                 k1, k2, n1, n2 = cSHAKE(seca || secb || sch₃)
+                 sch₄ = H(sch₃ || H(cptb || sph))
+
+Pass 5  C → S :  Ek1(sch₄)    [establish request: client encrypts transcript hash]
+        S → C :  Ek2(sch₄)    [establish response: server encrypts transcript hash]
+                 Session established only if both decrypted hashes match exactly
 ```
 
-Session keys are derived from `cSHAKE(shared_secret, transcript_hash)`, binding them cryptographically to both parties' identities and every value exchanged during the handshake. The server encrypts its final transcript hash with the newly established session cipher and sends it as explicit key confirmation — a mismatch terminates the connection immediately before any application data is processed.
+### Ratchet System
 
-### Security Properties
+After session establishment, both parties may refresh session keys on demand without terminating the connection.
 
-| Property | Mechanism |
-|---|---|
-| Server authentication | ML-DSA / SLH-DSA signature over transcript hash, verified against pre-distributed verkey |
-| Key exchange secrecy | ML-KEM / McEliece — quantum-safe encapsulation of ephemeral secret |
-| Transcript binding | Four-step rolling SHA3-256 hash over all exchanged values |
-| Explicit key confirmation | Server transmits `Ek(sch₃)`; client verifies before accepting session |
-| Message confidentiality | RCS-256 AEAD per packet |
-| Message integrity | KMAC/QMAC authentication tag, 256-bit, per packet |
-| Anti-replay | Per-packet sequence counter + UTC timestamp window |
-| Forward secrecy | cSHAKE-256 symmetric ratchet refreshes session keys without re-handshaking |
-| Key erasure | Compiler-resistant secure erase on all key material immediately after use |
+```
+Symmetric Ratchet (always available):
+  new_keys = cSHAKE-512(ratchet_token, current_ratchet_key, cfg)
+  Both TX and RX cipher instances are reinitialized atomically.
 
----
-
-## Performance and Scalability
-
-The QSMP server is implemented as a multi-threaded platform capable of maintaining a uniquely keyed encrypted tunnel for each connected client simultaneously. Ephemeral encapsulation keys are generated and destroyed within the scope of each exchange, ensuring complete session isolation with no shared key material between connections. The per-client state is compact by design, enabling a single server instance to sustain a large number of concurrent connections without significant memory pressure.
+Asymmetric Ratchet (when QSMD_ASYMMETRIC_RATCHET is defined):
+  Initiator generates fresh KEM keypair, signs and sends the public key.
+  Responder encapsulates a new secret, signs and sends the ciphertext.
+  Initiator decapsulates the secret.
+  Both parties inject the new secret into the symmetric ratchet.
+  Ephemeral keys are securely erased immediately after use.
+```
 
 ---
 
-## Compilation
+## Build Requirements
 
-QSMP uses the [QSC Cryptographic Library](https://github.com/QRCS-CORP/QSC) — a standalone, portable, MISRA-aligned cryptographic library written in C23. QSC supports platform-optimised builds across Windows, macOS, and Linux, with hardware acceleration for AES-NI, AVX2/AVX-512, and RDRAND where available.
-
-### Prerequisites
-
-| Tool | Requirement |
+| Platform | Toolchain |
 |---|---|
-| CMake | 3.15 or newer |
 | Windows | Visual Studio 2022 or newer |
 | macOS | Clang via Xcode or Homebrew |
 | Linux | GCC or Clang (C23-capable) |
@@ -183,13 +212,13 @@ QSMP uses the [QSC Cryptographic Library](https://github.com/QRCS-CORP/QSC) — 
 
 ### Windows (MSVC)
 
-The Visual Studio solution contains three projects: **QSMP** (library), **Server**, and **Client**. The QSMP library is expected in a folder parallel to the Server and Client project folders.
+The Visual Studio solution contains three projects: **QSMD** (library), **Server**, and **Client**. The QSMD library is expected in a folder parallel to the Server and Client project folders.
 
-> **Critical:** The `Enable Enhanced Instruction Set` property must be set to the **same value** across the QSC library, the QSMP library, and all application projects in both Debug and Release configurations. Mismatched intrinsics settings produce ABI-incompatible struct layouts and are a source of undefined behaviour.
+> **Critical:** The `Enable Enhanced Instruction Set` property must be set to the **same value** across the QSC library, the QSMD library, and all application projects in both Debug and Release configurations. Mismatched intrinsics settings produce ABI-incompatible struct layouts and are a source of undefined behaviour.
 
 **Build order:**
 1. Build the **QSC** library
-2. Build the **QSMP** library
+2. Build the **QSMD** library
 3. Build **Server** and **Client**
 
 **Include path configuration:**  
@@ -197,43 +226,48 @@ If the library files are not at their default locations, update the include path
 `Configuration Properties → C/C++ → General → Additional Include Directories`
 
 Default paths:
-- `$(SolutionDir)QSMP`
+- `$(SolutionDir)QSMD`
 - `$(SolutionDir)..\QSC\QSC`
 
-Ensure each application project's **References** property includes the QSMP library, and that the QSMP library references the QSC library.
+Ensure each application project's **References** property includes the QSMD library, and that the QSMD library references the QSC library.
 
 #### Local Protocol Test (Visual Studio)
 ```
-1. Set QSMP Server as the startup project and run it.
+1. Set QSMD Server as the startup project and run it.
    On first run the server generates a signing keypair automatically:
 
    server> The private-key was not detected, generating a new private/public keypair...
-   server> The publickey has been saved to C:\Users\<username>\Documents\QSMP\server_public_key.qpkey
+   server> The publickey has been saved to C:\Users\<username>\Documents\QSMD\server_public_key.qpkey
    server> Distribute the public-key to intended clients.
    server>
-   server> Waiting for a connection...
+   server> Waiting for a connection on port 30118...
 
-2. Right-click QSMP Client in the Solution Explorer → Debug → Start New Instance.
+2. Right-click QSMD Client in the Solution Explorer → Debug → Start New Instance.
+   Generate the client keypair if this is the first run:
+
+   client> The private-key was not detected, generating a new private/public keypair...
+   client> The publickey has been saved to C:\Users\<username>\Documents\QSMD\client_public_key.qpkey
+   client> Distribute the public-key to the server operator.
+
    Enter the loopback address and the path to the server's public key when prompted:
 
    client> Enter the destination IPv4 address, ex. 192.168.1.1
    client> 127.0.0.1
-   client> Enter the path of the public key:
-   client> C:\Users\<username>\Documents\QSMP\server_public_key.qpkey
-   client>
+   client> Enter the path of the server public key:
+   client> C:\Users\<username>\Documents\QSMD\server_public_key.qpkey
 
-   The client authenticates the server, completes the key exchange, and the
-   encrypted tunnel is established. Messages typed in either console are
+   Both parties complete mutual authentication and the five-pass key exchange.
+   The encrypted tunnel is established. Messages typed in either console are
    transmitted over the post-quantum secure channel.
 ```
 
-> The server's public key file (`server_public_key.qpkey`) is generated once and persists across restarts. Distribute this file to all intended clients out-of-band before they connect. On subsequent server starts, the existing keypair is loaded automatically.
+> Both the server's and client's public key files (`.qpkey`) are generated once and persist across restarts. Each operator must distribute their own public key file to the other party out-of-band before the first connection. On subsequent starts, existing key pairs are loaded automatically.
 
 ---
 
 ### macOS / Linux (Eclipse)
 
-The QSC and QSMP library projects, along with the Server and Client projects, have been tested with the Eclipse IDE on Ubuntu and macOS.
+The QSC and QSMD library projects, along with the Server and Client projects, have been tested with the Eclipse IDE on Ubuntu and macOS.
 
 Eclipse project files (`.project`, `.cproject`, `.settings`) are located in platform-specific subdirectories under the `Eclipse` folder. Copy the files from `Eclipse/Ubuntu/<project-name>` or `Eclipse/MacOS/<project-name>` directly into the folder containing each project's source files.
 
@@ -280,7 +314,7 @@ The default Eclipse projects are configured with no enhanced instruction extensi
 
 ## Cryptographic Dependencies
 
-QSMP SIMPLEX depends on the [QSC Cryptographic Library](https://github.com/QRCS-CORP/QSC) for all underlying cryptographic operations, including post-quantum primitives, symmetric ciphers, hash functions, and random number generation.
+QSMP DUPLEX depends on the [QSC Cryptographic Library](https://github.com/QRCS-CORP/QSC) for all underlying cryptographic operations, including post-quantum primitives, symmetric ciphers, hash functions, and random number generation.
 
 ---
 
@@ -288,7 +322,7 @@ QSMP SIMPLEX depends on the [QSC Cryptographic Library](https://github.com/QRCS-
 
 | Repository | Description |
 |---|---|
-| [QSMP DUPLEX](https://github.com/QRCS-CORP/QSMD) | Mutual authentication variant for 512-bit secure peer-to-peer and high-security deployments |
+| [QSMP SIMPLEX](https://github.com/QRCS-CORP/QSMP) | One-way trust variant optimised for high-performance client-server deployments |
 | [QSC Library](https://github.com/QRCS-CORP/QSC) | Underlying cryptographic primitive library |
 | [QSTP](https://github.com/QRCS-CORP/QSTP) | Root-anchored tunneling protocol with certificate-based server identity |
 
