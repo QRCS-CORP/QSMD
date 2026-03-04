@@ -277,7 +277,6 @@ static bool sender_ipv4_dialogue(qsc_ipinfo_ipv4_address* address, qsmd_server_s
 							qsc_consoleutils_print_safe("sender> The publickey has been saved to ");
 							qsc_consoleutils_print_line(fpath);
 							sender_print_message("Distribute the public-key to intended clients.");
-							sender_print_prompt();
 
 							/* store the private key */
 							qsc_stringutils_clear_string(fpath);
