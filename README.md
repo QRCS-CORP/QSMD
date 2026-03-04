@@ -2,16 +2,16 @@
 
 ## Introduction
 
-[![Build](https://github.com/QRCS-CORP/QSMP/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/QRCS-CORP/QSMP/actions/workflows/build.yml)
-[![CodeQL](https://github.com/QRCS-CORP/QSMP/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/QRCS-CORP/QSMP/actions/workflows/codeql-analysis.yml)
-[![CodeFactor](https://www.codefactor.io/repository/github/qrcs-corp/qsmp/badge)](https://www.codefactor.io/repository/github/qrcs-corp/qsmp)
+[![Build](https://github.com/QRCS-CORP/QSMD/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/QRCS-CORP/QSMD/actions/workflows/build.yml)
+[![CodeQL](https://github.com/QRCS-CORP/QSMD/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/QRCS-CORP/QSMD/actions/workflows/codeql-analysis.yml)
+[![CodeFactor](https://www.codefactor.io/repository/github/qrcs-corp/qsmd/badge)](https://www.codefactor.io/repository/github/qrcs-corp/qsmd)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20|%20macOS%20|%20Windows-blue)](#)
-[![Security Policy](https://img.shields.io/badge/security-policy-blue)](https://github.com/QRCS-CORP/QSMP/security/policy)
-[![License: QRCS License](https://img.shields.io/badge/License-QRCS%20License-blue.svg)](https://github.com/QRCS-CORP/QSMP/blob/main/License.txt)
+[![Security Policy](https://img.shields.io/badge/security-policy-blue)](https://github.com/QRCS-CORP/QSMD/security/policy)
+[![License: QRCS License](https://img.shields.io/badge/License-QRCS%20License-blue.svg)](https://github.com/QRCS-CORP/QSMD/blob/main/License.txt)
 [![Language](https://img.shields.io/static/v1?label=Language&message=C%2023&color=blue)](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3220.pdf)
-[![docs](https://img.shields.io/badge/docs-online-brightgreen)](https://qrcs-corp.github.io/QSMP/)
-[![GitHub release](https://img.shields.io/github/v/release/QRCS-CORP/QSMP)](https://github.com/QRCS-CORP/QSMP/releases/tag/2025-06-04)
-[![GitHub Last Commit](https://img.shields.io/github/last-commit/QRCS-CORP/QSMP.svg)](https://github.com/QRCS-CORP/QSMP/commits/main)
+[![docs](https://img.shields.io/badge/docs-online-brightgreen)](https://qrcs-corp.github.io/QSMD/)
+[![GitHub release](https://img.shields.io/github/v/release/QRCS-CORP/QSMD)](https://github.com/QRCS-CORP/QSMD/releases/tag/2025-06-04)
+[![GitHub Last Commit](https://img.shields.io/github/last-commit/QRCS-CORP/QSMD.svg)](https://github.com/QRCS-CORP/QSMD/commits/main)
 [![Security Standard](https://img.shields.io/static/v1?label=Security%20Standard&message=MISRA&color=blue)](https://misra.org.uk/)
 [![Target Industry](https://img.shields.io/static/v1?label=Target%20Industry&message=Communications&color=brightgreen)](#)
 
