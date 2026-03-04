@@ -286,6 +286,8 @@ qsmd_errors qsmd_header_validate(qsmd_connection_state* cns, const qsmd_network_
 
 	qsmd_errors merr;
 
+	merr = qsmd_error_invalid_input;
+
 	if (cns != NULL && packetin != NULL)
 	{
 		if (packetin->flag == qsmd_flag_general_error_condition)
@@ -437,7 +439,7 @@ void qsmd_log_system_error(qsmd_errors err)
 	const char* perr;
 	const char* pmsg;
 
-	pmsg = qsmd_get_error_description(qsmd_messages_system_message);
+	pmsg = qsmd_error_to_string(qsmd_messages_system_message);
 	perr = qsmd_error_to_string(err);
 
 	qsc_stringutils_copy_string(mtmp, sizeof(mtmp), pmsg);
