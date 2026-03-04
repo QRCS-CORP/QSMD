@@ -43,7 +43,7 @@ target_include_directories(qsmd_listener PRIVATE "Source/Listener")
 target_link_libraries(qsmd_listener PRIVATE qsmd)
 
 # Warnings
-foreach(target qsmd qsms_sender qsms_listener)
+foreach(target qsmd qsmd_sender qsmd_listener)
   if (MSVC)
     target_compile_options(${target} PRIVATE /W4 /WX)
   else()
