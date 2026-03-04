@@ -952,6 +952,8 @@ bool qsmd_stream_to_packet(const uint8_t* pstream, qsmd_network_packet* packet)
 	size_t pos;
 	bool res;
 
+	res = false;
+
 	if (packet != NULL && pstream != NULL)
 	{
 		packet->flag = pstream[0U];
