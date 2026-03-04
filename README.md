@@ -233,35 +233,34 @@ Ensure each application project's **References** property includes the QSMD libr
 
 #### Local Protocol Test (Visual Studio)
 ```
-1. Set QSMD Server as the startup project and run it.
-   On first run the server generates a signing keypair automatically:
+1. Set QSMD Listener as the startup project and run it.
+   On first run the listener generates a signing keypair automatically:
 
-   server> The private-key was not detected, generating a new private/public keypair...
-   server> The publickey has been saved to C:\Users\<username>\Documents\QSMD\server_public_key.qpkey
-   server> Distribute the public-key to intended clients.
-   server>
-   server> Waiting for a connection on port 30118...
+   listener> The private-key was not detected, generating a new private/public keypair...
+   listener> The publickey has been saved to C:\Users\stepp\Documents\QSMD\listener_public_key.qpkey
+   listener> Distribute the public-key to intended clients.
+   listener> Waiting for a connection...
+   listener>
 
-2. Right-click QSMD Client in the Solution Explorer → Debug → Start New Instance.
-   Generate the client keypair if this is the first run:
+2. Right-click QSMD Sender in the Solution Explorer → Debug → Start New Instance.
+   Enter the loopback address and the path to the listener's public key when prompted.
+   On first run the sender also generates its own signing keypair:
 
-   client> The private-key was not detected, generating a new private/public keypair...
-   client> The publickey has been saved to C:\Users\<username>\Documents\QSMD\client_public_key.qpkey
-   client> Distribute the public-key to the server operator.
-
-   Enter the loopback address and the path to the server's public key when prompted:
-
-   client> Enter the destination IPv4 address, ex. 192.168.1.1
-   client> 127.0.0.1
-   client> Enter the path of the server public key:
-   client> C:\Users\<username>\Documents\QSMD\server_public_key.qpkey
+   sender> Enter the destination IPv4 address, ex. 192.168.1.1
+   sender> 127.0.0.1
+   sender> Enter the path of the listener's public key:
+   sender> C:\Users\stepp\Documents\QSMD\listener_public_key.qpkey
+   sender> The private-key was not detected, generating a new private/public keypair...
+   sender> The publickey has been saved to C:\Users\stepp\Documents\QSMD\sender_public_key.qpkey
+   sender> Distribute the public-key to intended clients.
+   sender>
 
    Both parties complete mutual authentication and the five-pass key exchange.
    The encrypted tunnel is established. Messages typed in either console are
    transmitted over the post-quantum secure channel.
 ```
 
-> Both the server's and client's public key files (`.qpkey`) are generated once and persist across restarts. Each operator must distribute their own public key file to the other party out-of-band before the first connection. On subsequent starts, existing key pairs are loaded automatically.
+> Both the listener's and sender's public key files (`.qpkey`) are generated once and persist across restarts. Each operator must distribute their own public key file to the other party out-of-band before the first connection. On subsequent starts, existing key pairs are loaded automatically.
 
 ---
 
