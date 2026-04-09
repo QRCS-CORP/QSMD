@@ -37,7 +37,7 @@
 
 ## Overview
 
-QSMP DUPLEX establishes a 512-bit secure, bidirectional, authenticated encryption tunnel between a client and server using a **mutual trust model**: both parties hold long-term signing key pairs, and each verifies the other's public verification key — distributed out-of-band prior to connection — before any secret is encapsulated. Two independent shared secrets are derived from two separate KEM exchanges, and session keys are derived from both secrets combined with a rolling transcript hash. The complete handshake completes in **five passes** with no session tickets, no certificate chains, and no runtime cipher negotiation.
+QSMP DUPLEX establishes a 512-bit secure, bidirectional, authenticated encryption tunnel between a client and server using a **mutual trust model**: both parties hold long-term signing key pairs, and each verifies the other's public verification key — distributed out-of-band prior to connection — before any secret is encapsulated. Two independent shared secrets are derived from two separate KEM exchanges, and session keys are derived from both secrets combined with a rolling transcript hash. The complete handshake completes in **five passes** with no session tickets, no certificate chains, and no runtime cipher negotiation. 
 
 The protocol is complete and self-contained. All cryptographic parameters are fixed at compile time for a given configuration, eliminating downgrade attacks and cipher-suite confusion by construction. 
 
