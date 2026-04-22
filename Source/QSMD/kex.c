@@ -385,11 +385,13 @@ static qsmd_errors kex_duplex_client_establish_request(qsmd_kex_duplex_client_st
 					qsc_memutils_secure_erase(secb, sizeof(secb));
 					qsc_cshake_squeezeblocks(&kstate, qsc_keccak_rate_512, prnd, 3);
 
+#if defined(QSMD_ASYMMETRIC_RATCHET)
+
 					/* permute the state so we are not storing the current key */
 					qsc_keccak_permute(&kstate, QSC_KECCAK_PERMUTATION_ROUNDS);
 					/* copy as next key */
 					qsc_memutils_copy(cns->rtcs, (uint8_t*)kstate.state, QSMD_SYMMETRIC_KEY_SIZE);
-
+#endif
 					/* initialize the symmetric cipher, and raise client channel-1 tx */
 					qsc_rcs_keyparams kp = { 0 };
 					kp.key = prnd;
@@ -800,11 +802,13 @@ static qsmd_errors kex_duplex_server_exchange_response(qsmd_kex_duplex_server_st
 					qsc_memutils_secure_erase(secb, sizeof(secb));
 					/* generate the key set */
 					qsc_cshake_squeezeblocks(&kstate, qsc_keccak_rate_512, prnd, 3U);
+
+#if defined(QSMD_ASYMMETRIC_RATCHET)
 					/* permute the state so we are not storing the current key */
 					qsc_keccak_permute(&kstate, QSC_KECCAK_PERMUTATION_ROUNDS);
 					/* copy as next key */
 					qsc_memutils_copy(cns->rtcs, (uint8_t*)kstate.state, QSMD_SYMMETRIC_KEY_SIZE);
-
+#endif
 					/* initialize the symmetric cipher, and raise client channel-1 tx */
 					qsc_rcs_keyparams kp = { 0 };
 					kp.key = prnd;

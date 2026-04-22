@@ -10,13 +10,13 @@
 
 #if defined(QSMD_CONFIG_DILITHIUM_KYBER)
 #	if defined(QSC_DILITHIUM_S1P44) && defined(QSC_KYBER_S1K2P512)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "dilithium-s1_kyber-s1_sha3_rcs";
+const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "dilithium-s1_kyber-s1_sha3_rcs256";
 #	elif defined(QSC_DILITHIUM_S3P65) && defined(QSC_KYBER_S3K3P768)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "dilithium-s3_kyber-s3_sha3_rcs";
+const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "dilithium-s3_kyber-s3_sha3_rcs256";
 #	elif defined(QSC_DILITHIUM_S5P87) && defined(QSC_KYBER_S5K4P1024)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "dilithium-s5_kyber-s5_sha3_rcs";
+const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "dilithium-s5_kyber-s5_sha3_rcs256";
 #	elif defined(QSC_DILITHIUM_S5P87) && defined(QSC_KYBER_S6K5P1280)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "dilithium-s5_kyber-s6_sha3_rcs";
+const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "dilithium-s5_kyber-s6_sha3_rcs256";
 #	else
 #		error Invalid parameter set!
 #	endif
@@ -35,26 +35,16 @@ const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "dilithium-s5_mceliece-s7_sha3
 #		error Invalid parameter set!
 #	endif
 #elif defined(QSMD_CONFIG_SPHINCS_MCELIECE)
-#	if defined(QSC_SPHINCSPLUS_S1S128SHAKERF) && defined(QSC_MCELIECE_S1N3488T64)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs-s1f_mceliece-s1_sha3_rcs";
-#	elif defined(QSC_SPHINCSPLUS_S1S128SHAKERS) && defined(QSC_MCELIECE_S1N3488T64)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs-s1s_mceliece-s1_sha3_rcs";
-#	elif defined(QSC_SPHINCSPLUS_S3S192SHAKERF) && defined(QSC_MCELIECE_S3N4608T96)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs-3f_mceliece-s3_sha3_rcs";
+#	if defined(QSC_SPHINCSPLUS_S1S128SHAKERS) && defined(QSC_MCELIECE_S1N3488T64)
+const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs+-s1s_mceliece-s1_sha3_rcs";
 #	elif defined(QSC_SPHINCSPLUS_S3S192SHAKERS) && defined(QSC_MCELIECE_S3N4608T96)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs-3s_mceliece-s3_sha3_rcs";
-#	elif defined(QSC_SPHINCSPLUS_S5S256SHAKERF) && defined(QSC_MCELIECE_S5N6688T128)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs-s5f_mceliece-s5_sha3_rcs";
+const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs+-s3s_mceliece-s3_sha3_rcs";
 #	elif defined(QSC_SPHINCSPLUS_S5S256SHAKERS) && defined(QSC_MCELIECE_S5N6688T128)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs-s5s_mceliece-s5_sha3_rcs";
-#	elif defined(QSC_SPHINCSPLUS_S5S256SHAKERF) && defined(QSC_MCELIECE_S6N6960T119)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs-s5f_mceliece-s6_sha3_rcs";
+const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs+-s5s_mceliece-s5_sha3_rcs";
 #	elif defined(QSC_SPHINCSPLUS_S5S256SHAKERS) && defined(QSC_MCELIECE_S6N6960T119)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs-s5s_mceliece-s6_sha3_rcs";
-#	elif defined(QSC_SPHINCSPLUS_S5S256SHAKERF) && defined(QSC_MCELIECE_S7N8192T128)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs-s5f_mceliece-s7_sha3_rcs";
+const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs+-s5s_mceliece-s6_sha3_rcs";
 #	elif defined(QSC_SPHINCSPLUS_S5S256SHAKERS) && defined(QSC_MCELIECE_S7N8192T128)
-const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs-s5s_mceliece-s7_sha3_rcs";
+const char QSMD_CONFIG_STRING[QSMD_CONFIG_SIZE] = "sphincs+-s5s_mceliece-s7_sha3_rcs";
 #	else
 #		error Invalid parameter set!
 #	endif
@@ -187,7 +177,9 @@ void qsmd_connection_state_dispose(qsmd_connection_state* cns)
 		qsc_rcs_dispose(&cns->rxcpr);
 		qsc_rcs_dispose(&cns->txcpr);
 		qsc_memutils_secure_erase((uint8_t*)&cns->target, sizeof(qsc_socket));
+#if defined(QSMD_ASYMMETRIC_RATCHET)
 		qsc_memutils_secure_erase(&cns->rtcs, QSMD_ASYMMETRIC_SECRET_SIZE);
+#endif
 		cns->rxseq = 0U;
 		cns->txseq = 0U;
 		cns->cid = 0U;
@@ -739,7 +731,8 @@ bool qsmd_public_key_decode(qsmd_client_verification_key* pubk, const char* enck
 		++spos;
 
 		spos += sizeof(QSMD_PUBKEY_CONFIG_PREFIX) - 1U;
-		slen = qsc_stringutils_find_char(enck + spos, '\n');
+		slen = sizeof(QSMD_CONFIG_STRING) - 1U;
+
 		qsc_memutils_copy(pubk->config, enck + spos, slen);
 		spos += slen;
 		++spos;
@@ -801,7 +794,7 @@ size_t qsmd_public_key_encode(char* enck, size_t enclen, const qsmd_client_verif
 		slen = sizeof(QSMD_PUBKEY_CONFIG_PREFIX) - 1U;
 		qsc_memutils_copy(enck + spos, QSMD_PUBKEY_CONFIG_PREFIX, slen);
 		spos += slen;
-		slen = qsc_stringutils_string_size(QSMD_CONFIG_STRING);
+		slen = sizeof(QSMD_CONFIG_STRING) - 1U;
 		qsc_memutils_copy(enck + spos, QSMD_CONFIG_STRING, slen);
 		spos += slen;
 		enck[spos] = '\n';
@@ -833,16 +826,20 @@ size_t qsmd_public_key_encode(char* enck, size_t enclen, const qsmd_client_verif
 
 		if (prvs != NULL)
 		{
-			qsc_memutils_secure_erase(prvs, elen);
+			qsc_memutils_clear(prvs, elen);
 			qsc_encoding_base64_encode(prvs, elen, pubk->verkey, slen);
 			spos += qsc_stringutils_add_line_breaks(enck + spos, enclen - spos, QSMD_PUBKEY_LINE_LENGTH, prvs, elen);
 			qsc_memutils_alloc_free(prvs);
+			enck[spos] = '\n';
 		}
 
+		enck[spos] = '\n';
+		++spos;
 		slen = sizeof(QSMD_PUBKEY_FOOTER) - 1U;
 		qsc_memutils_copy((enck + spos), QSMD_PUBKEY_FOOTER, slen);
 		spos += slen;
 		enck[spos] = '\n';
+		++spos;
 	}
 
 	return spos;

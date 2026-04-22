@@ -47,7 +47,9 @@ static void client_duplex_state_initialize(qsmd_kex_duplex_client_state* kcs, qs
 	qsc_memutils_copy(kcs->sigkey, kset->sigkey, QSMD_ASYMMETRIC_SIGNING_KEY_SIZE);
 	qsc_memutils_copy(kcs->keyid, rverkey->keyid, QSMD_KEYID_SIZE);
 	qsc_memutils_copy(kcs->rverkey, rverkey->verkey, QSMD_ASYMMETRIC_VERIFY_KEY_SIZE);
+#if defined(QSMD_ASYMMETRIC_RATCHET)
 	qsc_memutils_clear(cns->rtcs, QSMD_SYMMETRIC_KEY_SIZE);
+#endif
 	kcs->expiration = rverkey->expiration;
 	cns->target.instance = qsc_acp_uint32();
 	qsc_rcs_dispose(&cns->rxcpr);
@@ -60,17 +62,18 @@ static void client_duplex_state_initialize(qsmd_kex_duplex_client_state* kcs, qs
 }
 
 static void listener_duplex_state_initialize(qsmd_kex_duplex_server_state* kss, listener_receiver_state* rcv, 
-	const qsmd_server_signature_key* kset, 
-	bool (*key_query)(uint8_t* rvkey, const uint8_t* pkid))
+	const qsmd_server_signature_key* kset, bool (*key_query)(uint8_t* rvkey, const uint8_t* pkid))
 {
 	qsc_memutils_copy(kss->keyid, kset->keyid, QSMD_KEYID_SIZE);
 	qsc_memutils_copy(kss->sigkey, kset->sigkey, QSMD_ASYMMETRIC_SIGNING_KEY_SIZE);
 	qsc_memutils_copy(kss->verkey, kset->verkey, QSMD_ASYMMETRIC_VERIFY_KEY_SIZE);
 	kss->key_query = key_query;
 	kss->expiration = kset->expiration;
-	qsc_memutils_clear((uint8_t*)&rcv->pcns->rxcpr, sizeof(qsc_rcs_state));
-	qsc_memutils_clear((uint8_t*)&rcv->pcns->txcpr, sizeof(qsc_rcs_state));
+	qsc_rcs_dispose(&rcv->pcns->rxcpr);
+	qsc_rcs_dispose(&rcv->pcns->txcpr);
+#if defined(QSMD_ASYMMETRIC_RATCHET)
 	qsc_memutils_clear(&rcv->pcns->rtcs, QSMD_SYMMETRIC_KEY_SIZE);
+#endif
 	rcv->pcns->exflag = qsmd_flag_none;
 	rcv->pcns->cid = 0U;
 	rcv->pcns->rxseq = 0U;
@@ -78,6 +81,7 @@ static void listener_duplex_state_initialize(qsmd_kex_duplex_server_state* kss, 
 	rcv->pcns->receiver = true;
 }
 
+#if defined(QSMD_ASYMMETRIC_RATCHET)
 static void symmetric_ratchet(qsmd_connection_state* cns, const uint8_t* secret, size_t seclen)
 {
 	qsc_keccak_state kstate = { 0 };
@@ -169,6 +173,7 @@ static bool symmetric_ratchet_response(qsmd_connection_state* cns, const qsmd_ne
 
 	return res;
 }
+#endif
 
 #if defined(QSMD_ASYMMETRIC_RATCHET)
 static bool asymmetric_ratchet_response(qsmd_connection_state* cns, const qsmd_network_packet* packetin)
@@ -443,6 +448,7 @@ static void client_receive_loop(void* prcv)
 									break;
 								}
 							}
+#if defined(QSMD_ASYMMETRIC_RATCHET)
 							else if (pkt.flag == qsmd_flag_symmetric_ratchet_request)
 							{
 								if (symmetric_ratchet_response(pprcv->pcns, &pkt) == false)
@@ -451,7 +457,6 @@ static void client_receive_loop(void* prcv)
 									break;
 								}
 							}
-#if defined(QSMD_ASYMMETRIC_RATCHET)
 							else if (pkt.flag == qsmd_flag_asymmetric_ratchet_request)
 							{
 								if (asymmetric_ratchet_response(pprcv->pcns, &pkt) == false)
@@ -609,6 +614,7 @@ static void listener_receive_loop(listener_receiver_state* prcv)
 								qsmd_log_write(qsmd_messages_disconnect, cadd);
 								break;
 							}
+#if defined(QSMD_ASYMMETRIC_RATCHET)
 							else if (pkt.flag == qsmd_flag_symmetric_ratchet_request)
 							{
 								if (symmetric_ratchet_response(prcv->pcns, &pkt) == false)
@@ -617,7 +623,6 @@ static void listener_receive_loop(listener_receiver_state* prcv)
 									break;
 								}
 							}
-#if defined(QSMD_ASYMMETRIC_RATCHET)
 							else if (pkt.flag == qsmd_flag_asymmetric_ratchet_request)
 							{
 								if (asymmetric_ratchet_response(prcv->pcns, &pkt) == false)
@@ -900,7 +905,9 @@ bool qsmd_duplex_send_symmetric_ratchet_request(qsmd_connection_state* cns)
 
 			if (slen == plen)
 			{
+#if defined(QSMD_ASYMMETRIC_RATCHET)
 				symmetric_ratchet(cns, rkey, sizeof(rkey));
+#endif
 				res = true;
 			}
 

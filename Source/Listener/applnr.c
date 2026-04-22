@@ -110,18 +110,23 @@ static void listener_print_banner(void)
 	qsc_consoleutils_print_line("");
 }
 
-static bool listener_get_storage_path(char* path, size_t pathlen)
+static bool listener_get_storage_path(char* fpath, size_t pathlen)
 {
 	bool res;
 
-	qsc_folderutils_get_directory(qsc_folderutils_directories_user_documents, path);
-	qsc_folderutils_append_delimiter(path);
-	qsc_stringutils_concat_strings(path, pathlen, QSMD_APP_PATH);
-	res = qsc_folderutils_directory_exists(path);
+#if defined(QSC_SYSTEM_OS_WINDOWS)
+	qsc_folderutils_get_directory(qsc_folderutils_directories_user_app_data, fpath);
+#else
+	qsc_folderutils_get_directory(qsc_folderutils_directories_user_documents, fpath);
+#endif
+
+	qsc_folderutils_append_delimiter(fpath);
+	qsc_stringutils_concat_strings(fpath, pathlen, QSMD_APP_PATH);
+	res = qsc_folderutils_directory_exists(fpath);
 
 	if (res == false)
 	{
-		res = qsc_folderutils_create_directory(path);
+		res = qsc_folderutils_create_directory(fpath);
 	}
 
 	return res;
@@ -148,7 +153,11 @@ static bool listener_senderkey_exists(char fpath[QSC_SYSTEM_MAX_PATH], size_t pa
 {
 	bool res;
 
+#if defined(QSC_SYSTEM_OS_WINDOWS)
+	qsc_folderutils_get_directory(qsc_folderutils_directories_user_app_data, fpath);
+#else
 	qsc_folderutils_get_directory(qsc_folderutils_directories_user_documents, fpath);
+#endif
 	qsc_folderutils_append_delimiter(fpath);
 	qsc_stringutils_concat_strings(fpath, pathlen, QSMD_APP_PATH);
 	res = qsc_folderutils_directory_exists(fpath);
@@ -205,7 +214,7 @@ static bool listener_key_query(uint8_t* rvkey, const uint8_t* pkid)
 static bool listener_key_dialogue(qsmd_server_signature_key* prik, qsmd_client_verification_key* pubk, uint8_t keyid[QSMD_KEYID_SIZE])
 {
 	char* spub;
-	uint8_t spri[QSMD_SIGKEY_ENCODED_SIZE] = { 0U };
+	uint8_t spri[QSMD_SIGNATURE_KEY_SERIALIZED_SIZE] = { 0U };
 	char dir[QSC_SYSTEM_MAX_PATH] = { 0 };
 	char fpath[QSC_SYSTEM_MAX_PATH] = { 0 };
 	size_t elen;

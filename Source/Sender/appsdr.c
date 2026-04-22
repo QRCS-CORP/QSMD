@@ -112,7 +112,12 @@ static bool sender_get_storage_path(char fpath[QSC_SYSTEM_MAX_PATH], size_t path
 {
 	bool res;
 
+#if defined(QSC_SYSTEM_OS_WINDOWS)
+	qsc_folderutils_get_directory(qsc_folderutils_directories_user_app_data, fpath);
+#else
 	qsc_folderutils_get_directory(qsc_folderutils_directories_user_documents, fpath);
+#endif
+
 	qsc_folderutils_append_delimiter(fpath);
 	qsc_stringutils_concat_strings(fpath, pathlen, QSMD_APP_PATH);
 	res = qsc_folderutils_directory_exists(fpath);
@@ -145,7 +150,7 @@ static bool sender_prikey_exists(char fpath[QSC_SYSTEM_MAX_PATH], size_t pathlen
 static bool sender_ipv4_dialogue(qsc_ipinfo_ipv4_address* address, qsmd_server_signature_key* sigk, qsmd_client_verification_key* verk)
 {
 	qsc_ipinfo_ipv4_address addv4t = { 0 };
-	uint8_t spri[QSMD_SIGKEY_ENCODED_SIZE] = { 0 };
+	uint8_t spri[QSMD_SIGNATURE_KEY_SERIALIZED_SIZE] = { 0 };
 	char sadd[QSC_IPINFO_IPV4_STRNLEN] = { 0 };
 	char dir[QSC_SYSTEM_MAX_PATH] = { 0 };
 	char fpath[QSC_SYSTEM_MAX_PATH] = { 0 };
@@ -195,7 +200,7 @@ static bool sender_ipv4_dialogue(qsc_ipinfo_ipv4_address* address, qsmd_server_s
 				qsc_stringutils_string_contains(fpath, QSMD_PUBKEY_EXTENSION) == true)
 			{
 				elen = qsmd_public_key_encoding_size();
-				spub = qsc_memutils_malloc(elen);
+				spub = qsc_memutils_malloc(elen + 1U);
 
 				if (spub != NULL)
 				{
