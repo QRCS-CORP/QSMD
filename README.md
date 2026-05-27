@@ -1,4 +1,4 @@
-# Quantum Secure Messaging Protocol - DUPLEX
+# QSMP: Quantum Secure Messaging Protocol DUPLEX
 
 ## Introduction
 
