@@ -852,7 +852,7 @@ QSMD_EXPORT_API typedef struct qsmd_connection_state
 	uint8_t sigkey[QSMD_ASYMMETRIC_SIGNING_KEY_SIZE]; /*!< The local signing key */
 	uint8_t verkey[QSMD_ASYMMETRIC_VERIFY_KEY_SIZE];  /*!< The remote signature verification key */
 	qsc_mutex txlock;								/*!< The transmit channel lock */
-	uint8_t rtcs[QSMD_ASYMMETRIC_SECRET_SIZE];		/*!< The symmetric ratchet key */
+	uint8_t rtcs[QSMD_SYMMETRIC_KEY_SIZE];			/*!< The symmetric ratchet key */
 #endif
 } qsmd_connection_state;
 

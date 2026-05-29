@@ -16,7 +16,11 @@ static void logger_default_path(char* path, size_t pathlen)
 
 	if (path != NULL && pathlen != 0U)
 	{
+#if defined(QSC_SYSTEM_OS_WINDOWS)
+		qsc_folderutils_get_directory(qsc_folderutils_directories_user_app_data, path);
+#else
 		qsc_folderutils_get_directory(qsc_folderutils_directories_user_documents, path);
+#endif
 		qsc_folderutils_append_delimiter(path);
 		qsc_stringutils_concat_strings(path, pathlen, QSMD_LOGGER_PATH);
 		res = qsc_folderutils_directory_exists(path);
@@ -88,22 +92,29 @@ bool qsmd_logger_exists(void)
 void qsmd_logger_print(void)
 {
 	char buf[QSMD_LOGGING_MESSAGE_MAX + 1U] = { 0 };
+	int64_t rlen;
 	size_t lctr;
 	size_t mlen;
 
 	lctr = 0U;
+	mlen = 0U;
 
 	if (qsmd_logger_exists() == true)
 	{
 		do
 		{
-			mlen = qsc_fileutils_read_line(m_log_path, buf, sizeof(buf) - 1U, lctr);
+			rlen = qsc_fileutils_read_line(m_log_path, buf, sizeof(buf) - 1U, lctr);
 			++lctr;
 
-			if (mlen > 0U)
+			if (rlen > 0)
 			{
+				mlen = (size_t)rlen;
 				qsc_consoleutils_print_line(buf);
 				qsc_memutils_clear(buf, mlen);
+			}
+			else
+			{
+				mlen = 0U;
 			}
 		} while (mlen > 0U);
 	}

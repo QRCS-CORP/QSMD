@@ -102,8 +102,8 @@ static void sender_print_banner(void)
 	qsc_consoleutils_print_line("Type 'qsmd symmetric ratchet' to perform a symmetric key ratchet operation.");
 	qsc_consoleutils_print_line("Type 'qsmd quit' to close the connection.");
 	qsc_consoleutils_print_line("");
-	qsc_consoleutils_print_line("Release:   v1.4.0.0d (A4)");
-	qsc_consoleutils_print_line("Date:      March 03, 2026");
+	qsc_consoleutils_print_line("Release:   v1.4.0.0e (A4)");
+	qsc_consoleutils_print_line("Date:      May 27, 2026");
 	qsc_consoleutils_print_line("Contact:   contact@qrcscorp.ca");
 	qsc_consoleutils_print_line("");
 }

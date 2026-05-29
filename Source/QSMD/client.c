@@ -408,8 +408,13 @@ static void client_receive_loop(void* prcv)
 							{
 								uint8_t* rmsg;
 
-								slen = pkt.msglen;
-								slen -= QSMD_MACTAG_SIZE;
+								if (pkt.msglen <= QSMD_MACTAG_SIZE)
+								{
+									qsmd_log_write(qsmd_messages_receive_fail, cadd);
+									break;
+								}
+
+								slen = pkt.msglen - QSMD_MACTAG_SIZE;
 								rmsg = (uint8_t*)qsc_memutils_malloc(slen);
 
 								if (rmsg != NULL)
@@ -579,8 +584,13 @@ static void listener_receive_loop(listener_receiver_state* prcv)
 							{
 								uint8_t* rmsg;
 
-								slen = pkt.msglen;
-								slen -= QSMD_MACTAG_SIZE;
+								if (pkt.msglen <= QSMD_MACTAG_SIZE)
+								{
+									qsmd_log_write(qsmd_messages_receive_fail, cadd);
+									break;
+								}
+
+								slen = pkt.msglen - QSMD_MACTAG_SIZE;
 								rmsg = (uint8_t*)qsc_memutils_malloc(slen);
 
 								if (rmsg != NULL)
@@ -991,11 +1001,12 @@ qsmd_errors qsmd_client_duplex_connect_ipv4(const qsmd_server_signature_key* kse
 							/* start the send loop on the main thread */
 							send_func(prcv->pcns);
 
-							/* terminate the receiver thread */
-							(void)qsc_async_thread_terminate(trcv);
-
 							/* disconnect the socket */
 							qsmd_connection_close(prcv->pcns, qsmd_error_none, true);
+
+							/* wait for receive loop to observe the closed socket and exit */
+							qsc_async_thread_wait(trcv);
+
 							/* dispose of the state */
 							client_connection_dispose(prcv);
 
@@ -1029,6 +1040,7 @@ qsmd_errors qsmd_client_duplex_connect_ipv4(const qsmd_server_signature_key* kse
 					qerr = qsmd_error_memory_allocation;
 				}
 
+				qsc_memutils_secure_erase((uint8_t*)prcv->pcns, sizeof(qsmd_connection_state));
 				qsc_memutils_alloc_free(prcv);
 				prcv = NULL;
 			}
@@ -1130,11 +1142,12 @@ qsmd_errors qsmd_client_duplex_connect_ipv6(const qsmd_server_signature_key* kse
 							/* start the send loop on the main thread */
 							send_func(prcv->pcns);
 
-							/* terminate the receiver thread */
-							(void)qsc_async_thread_terminate(trcv);
-
 							/* disconnect the socket */
 							qsmd_connection_close(prcv->pcns, qsmd_error_none, true);
+
+							/* wait for receive loop to observe the closed socket and exit */
+							qsc_async_thread_wait(trcv);
+
 							/* dispose of the state */
 							client_connection_dispose(prcv);
 
@@ -1159,6 +1172,7 @@ qsmd_errors qsmd_client_duplex_connect_ipv6(const qsmd_server_signature_key* kse
 						qerr = qsmd_error_connection_failure;
 					}
 
+					qsc_memutils_secure_erase((uint8_t*)prcv->pcns, sizeof(qsmd_connection_state));
 					qsc_memutils_alloc_free(prcv->pcns);
 					prcv->pcns = NULL;
 				}
@@ -1247,7 +1261,7 @@ qsmd_errors qsmd_client_duplex_listen_ipv4(const qsmd_server_signature_key* kset
 					qerr = qsmd_error_connection_failure;
 				}
 
-				qsc_memutils_clear((uint8_t*)prcv->pcns, sizeof(qsmd_connection_state));
+				qsc_memutils_secure_erase((uint8_t*)prcv->pcns, sizeof(qsmd_connection_state));
 				qsc_memutils_alloc_free(prcv->pcns);
 				prcv->pcns = NULL;
 			}
