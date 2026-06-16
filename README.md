@@ -30,8 +30,6 @@
 | [Summary Document](https://qrcs-corp.github.io/QSMD/pdf/qsmd_summary.pdf) | Protocol overview and design rationale |
 | [Protocol Specification](https://qrcs-corp.github.io/QSMD/pdf/qsmd_specification.pdf) | Complete formal protocol definition |
 | [Formal Analysis](https://qrcs-corp.github.io/QSMD/pdf/qsmd_formal.pdf) | Security proofs and formal verification |
-| [Implementation Analysis](https://qrcs-corp.github.io/QSMD/pdf/qsmd_analysis.pdf) | Implementation security considerations |
-| [Integration Guide](https://qrcs-corp.github.io/QSMD/pdf/qsmd_integration.pdf) | Deployment and integration instructions |
 
 ---
 
