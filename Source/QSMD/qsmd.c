@@ -162,9 +162,10 @@ void qsmd_connection_close(qsmd_connection_state* cns, qsmd_errors err, bool not
 #endif
 			}
 
-			/* close the socket */
-			qsc_socket_close_socket(&cns->target);
 		}
+
+		/* Release the native handle even after the peer disconnects. */
+		(void)qsc_socket_close_socket(&cns->target);
 	}
 }
 
@@ -178,7 +179,7 @@ void qsmd_connection_state_dispose(qsmd_connection_state* cns)
 		qsc_rcs_dispose(&cns->txcpr);
 		qsc_memutils_secure_erase((uint8_t*)&cns->target, sizeof(qsc_socket));
 #if defined(QSMD_ASYMMETRIC_RATCHET)
-		qsc_memutils_secure_erase(&cns->rtcs, QSMD_ASYMMETRIC_SECRET_SIZE);
+		qsc_memutils_secure_erase(cns->rtcs, sizeof(cns->rtcs));
 #endif
 		cns->rxseq = 0U;
 		cns->txseq = 0U;

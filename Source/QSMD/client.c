@@ -344,13 +344,8 @@ static bool asymmetric_ratchet_finalize(qsmd_connection_state* cns, const qsmd_n
 
 static void client_connection_dispose(client_receiver_state* prcv)
 {
-	/* send a close notification to the server */
-	if (qsc_socket_is_connected(&prcv->pcns->target) == true)
-	{
-		qsmd_connection_close(prcv->pcns, qsmd_error_none, true);
-	}
-
-	/* dispose of resources */
+	/* The owner closes the native socket before erasing its state. */
+	qsmd_connection_close(prcv->pcns, qsmd_error_none, false);
 	qsmd_connection_state_dispose(prcv->pcns);
 }
 
@@ -399,7 +394,7 @@ static void client_receive_loop(void* prcv)
 						qsc_memutils_clear(rbuf, plen);
 						mlen = qsc_socket_receive(&pprcv->pcns->target, rbuf, plen, qsc_socket_receive_flag_wait_all);
 
-						if (mlen > 0U)
+						if (mlen == plen)
 						{
 							qsmd_packet_header_deserialize(rbuf, &pkt);
 							pkt.pmessage = rbuf + QSMD_HEADER_SIZE;
@@ -430,6 +425,8 @@ static void client_receive_loop(void* prcv)
 									{
 										/* close the connection on authentication failure */
 										qsmd_log_write(qsmd_messages_decryption_fail, cadd);
+										qsc_memutils_secure_erase(rmsg, slen);
+										qsc_memutils_alloc_free(rmsg);
 										break;
 									}
 
@@ -515,6 +512,10 @@ static void client_receive_loop(void* prcv)
 					break;
 				}
 			}
+			else if (plen > 0U && plen < QSMD_HEADER_SIZE)
+			{
+				qsc_async_thread_sleep(1U);
+			}
 			else
 			{
 				qsmd_log_write(qsmd_messages_receive_fail, cadd);
@@ -575,7 +576,7 @@ static void listener_receive_loop(listener_receiver_state* prcv)
 						qsc_memutils_clear(rbuf, plen);
 						mlen = qsc_socket_receive(&prcv->pcns->target, rbuf, plen, qsc_socket_receive_flag_wait_all);
 
-						if (mlen > 0U)
+						if (mlen == plen)
 						{
 							qsmd_packet_header_deserialize(rbuf, &pkt);
 							pkt.pmessage = rbuf + QSMD_HEADER_SIZE;
@@ -606,6 +607,8 @@ static void listener_receive_loop(listener_receiver_state* prcv)
 									{
 										/* close the connection on authentication failure */
 										qsmd_log_write(qsmd_messages_decryption_fail, cadd);
+										qsc_memutils_secure_erase(rmsg, slen);
+										qsc_memutils_alloc_free(rmsg);
 										break;
 									}
 
@@ -688,6 +691,10 @@ static void listener_receive_loop(listener_receiver_state* prcv)
 					break;
 				}
 			}
+			else if (plen > 0U && plen < QSMD_HEADER_SIZE)
+			{
+				qsc_async_thread_sleep(1U);
+			}
 			else
 			{
 				qsmd_log_write(qsmd_messages_receive_fail, cadd);
@@ -757,11 +764,18 @@ static qsmd_errors listener_duplex_start(const qsmd_server_signature_key* kset,
 			largs.prcv = prcv;
 			trcv = qsc_async_thread_create(&listener_receive_loop_wrapper, &largs);
 
-			/* start the send loop on the *main* thread */
-			send_func(prcv->pcns);
-
-			/* terminate the receiver thread */
-			(void)qsc_async_thread_terminate(trcv);
+			if (trcv != 0)
+			{
+				/* Keep receiver state alive until the worker has exited. */
+				send_func(prcv->pcns);
+				(void)qsc_socket_shut_down(&prcv->pcns->target, qsc_socket_shut_down_flag_both);
+				qsc_async_thread_wait(trcv);
+			}
+			else
+			{
+				qerr = qsmd_error_memory_allocation;
+				qsmd_log_message(qsmd_messages_allocate_fail);
+			}
 
 #if defined(QSMD_ASYMMETRIC_RATCHET)
 			qsc_memutils_secure_erase(prcv->pcns->sigkey, QSMD_ASYMMETRIC_SIGNING_KEY_SIZE);
@@ -971,6 +985,7 @@ qsmd_errors qsmd_client_duplex_connect_ipv4(const qsmd_server_signature_key* kse
 
 				if (prcv->pcns != NULL)
 				{
+					qsc_memutils_clear(prcv->pcns, sizeof(qsmd_connection_state));
 					prcv->callback = receive_callback;
 					qsc_socket_client_initialize(&prcv->pcns->target);
 
@@ -998,17 +1013,17 @@ qsmd_errors qsmd_client_duplex_connect_ipv4(const qsmd_server_signature_key* kse
 							/* start the receive loop on a new thread */
 							trcv = qsc_async_thread_create(&client_receive_loop, prcv);
 
-							/* start the send loop on the main thread */
-							send_func(prcv->pcns);
-
-							/* disconnect the socket */
-							qsmd_connection_close(prcv->pcns, qsmd_error_none, true);
-
-							/* wait for receive loop to observe the closed socket and exit */
-							qsc_async_thread_wait(trcv);
-
-							/* dispose of the state */
-							client_connection_dispose(prcv);
+							if (trcv != 0)
+							{
+								send_func(prcv->pcns);
+								(void)qsc_socket_shut_down(&prcv->pcns->target, qsc_socket_shut_down_flag_both);
+								qsc_async_thread_wait(trcv);
+							}
+							else
+							{
+								qerr = qsmd_error_memory_allocation;
+								qsmd_log_message(qsmd_messages_allocate_fail);
+							}
 
 #if defined(QSMD_ASYMMETRIC_RATCHET)
 							qsc_async_mutex_destroy(prcv->pcns->txlock);
@@ -1018,7 +1033,6 @@ qsmd_errors qsmd_client_duplex_connect_ipv4(const qsmd_server_signature_key* kse
 						}
 						else
 						{
-							client_connection_dispose(prcv);
 							qsmd_log_write(qsmd_messages_kex_fail, (const char*)prcv->pcns->target.address);
 							qerr = qsmd_error_exchange_failure;
 						}
@@ -1026,11 +1040,12 @@ qsmd_errors qsmd_client_duplex_connect_ipv4(const qsmd_server_signature_key* kse
 					else
 					{
 						/* dispose of the state */
-						client_connection_dispose(prcv);
 						qsmd_log_write(qsmd_messages_kex_fail, (const char*)prcv->pcns->target.address);
 						qerr = qsmd_error_connection_failure;
 					}
 
+					client_connection_dispose(prcv);
+					qsc_memutils_secure_erase((uint8_t*)prcv->pcns, sizeof(qsmd_connection_state));
 					qsc_memutils_alloc_free(prcv->pcns);
 					prcv->pcns = NULL;
 				}
@@ -1040,7 +1055,6 @@ qsmd_errors qsmd_client_duplex_connect_ipv4(const qsmd_server_signature_key* kse
 					qerr = qsmd_error_memory_allocation;
 				}
 
-				qsc_memutils_secure_erase((uint8_t*)prcv->pcns, sizeof(qsmd_connection_state));
 				qsc_memutils_alloc_free(prcv);
 				prcv = NULL;
 			}
@@ -1112,6 +1126,7 @@ qsmd_errors qsmd_client_duplex_connect_ipv6(const qsmd_server_signature_key* kse
 
 				if (prcv->pcns != NULL)
 				{
+					qsc_memutils_clear(prcv->pcns, sizeof(qsmd_connection_state));
 					prcv->callback = receive_callback;
 					qsc_socket_client_initialize(&prcv->pcns->target);
 
@@ -1139,17 +1154,17 @@ qsmd_errors qsmd_client_duplex_connect_ipv6(const qsmd_server_signature_key* kse
 							/* start the receive loop on a new thread */
 							trcv = qsc_async_thread_create(&client_receive_loop, prcv);
 
-							/* start the send loop on the main thread */
-							send_func(prcv->pcns);
-
-							/* disconnect the socket */
-							qsmd_connection_close(prcv->pcns, qsmd_error_none, true);
-
-							/* wait for receive loop to observe the closed socket and exit */
-							qsc_async_thread_wait(trcv);
-
-							/* dispose of the state */
-							client_connection_dispose(prcv);
+							if (trcv != 0)
+							{
+								send_func(prcv->pcns);
+								(void)qsc_socket_shut_down(&prcv->pcns->target, qsc_socket_shut_down_flag_both);
+								qsc_async_thread_wait(trcv);
+							}
+							else
+							{
+								qerr = qsmd_error_memory_allocation;
+								qsmd_log_message(qsmd_messages_allocate_fail);
+							}
 
 #if defined(QSMD_ASYMMETRIC_RATCHET)
 							qsc_async_mutex_destroy(prcv->pcns->txlock);
@@ -1165,13 +1180,12 @@ qsmd_errors qsmd_client_duplex_connect_ipv6(const qsmd_server_signature_key* kse
 					}
 					else
 					{
-						/* dispose of the state */
-						client_connection_dispose(prcv);
-
+						/* Report before disposing the peer address and socket. */
 						qsmd_log_write(qsmd_messages_kex_fail, (const char*)prcv->pcns->target.address);
 						qerr = qsmd_error_connection_failure;
 					}
 
+					client_connection_dispose(prcv);
 					qsc_memutils_secure_erase((uint8_t*)prcv->pcns, sizeof(qsmd_connection_state));
 					qsc_memutils_alloc_free(prcv->pcns);
 					prcv->pcns = NULL;
@@ -1261,6 +1275,9 @@ qsmd_errors qsmd_client_duplex_listen_ipv4(const qsmd_server_signature_key* kset
 					qerr = qsmd_error_connection_failure;
 				}
 
+				qsmd_connection_close(prcv->pcns, qsmd_error_none, false);
+				(void)qsc_socket_close_socket(&srvs);
+				qsmd_connection_state_dispose(prcv->pcns);
 				qsc_memutils_secure_erase((uint8_t*)prcv->pcns, sizeof(qsmd_connection_state));
 				qsc_memutils_alloc_free(prcv->pcns);
 				prcv->pcns = NULL;
@@ -1339,7 +1356,10 @@ qsmd_errors qsmd_client_duplex_listen_ipv6(const qsmd_server_signature_key* kset
 					qerr = qsmd_error_connection_failure;
 				}
 
-				qsc_memutils_clear((uint8_t*)prcv->pcns, sizeof(qsmd_connection_state));
+				qsmd_connection_close(prcv->pcns, qsmd_error_none, false);
+				(void)qsc_socket_close_socket(&srvs);
+				qsmd_connection_state_dispose(prcv->pcns);
+				qsc_memutils_secure_erase((uint8_t*)prcv->pcns, sizeof(qsmd_connection_state));
 				qsc_memutils_alloc_free(prcv->pcns);
 				prcv->pcns = NULL;
 			}

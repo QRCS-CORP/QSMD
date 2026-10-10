@@ -183,7 +183,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\QSC\QSC\QSC.vcxproj">
-      <Project>{7b7f8e47-0f7c-4273-a229-a7ab2a452ea9}</Project>
+      <Project>{39b40e5f-dd73-43a6-b1c7-3e3b5e39d84a}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

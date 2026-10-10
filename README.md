@@ -15,6 +15,15 @@
 [![Security Standard](https://img.shields.io/static/v1?label=Security%20Standard&message=MISRA&color=blue)](https://misra.org.uk/)
 [![Target Industry](https://img.shields.io/static/v1?label=Target%20Industry&message=Communications&color=brightgreen)](#)
 
+> [!IMPORTANT]
+> **Protocol Demonstration — QSMP Secure Gateway Available**
+>
+> This repository contains the QSMD (QSMP Duplex) protocol library and client/server demonstrations for **key exchange (KEX) and protocol evaluation only**.
+>
+> The commercial **QSMP Secure Gateway** adds protected IPv4/IPv6 routing on Windows and Linux, managed peer trust, graphical and command-line administration, symmetric and asymmetric ratchet controls, live security telemetry, authenticated audit, diagnostics, and signed update staging.
+>
+> **[Explore QSMP Secure Gateway and request a 14-day evaluation](https://qrcscorp.ca/technology/qsmp.html).**
+
 **QSMP DUPLEX** is a post-quantum secure messaging protocol providing mutual authentication and encrypted tunnel establishment between two peers. Both parties hold long-term asymmetric signing key pairs, and each verifies the other's identity before any secret material is exchanged. Engineered from the ground up to address the cryptographic challenges posed by quantum computing, QSMD avoids the design compromises and legacy constraints of protocols such as TLS, SSH, and PGP. There is no algorithm negotiation, no versioning attack surface, and no backward compatibility with classical-only primitives.
 
 > This repository contains the **DUPLEX** variant of QSMP: a mutual authentication model designed for peer-to-peer and high-security client-server deployments targeting 512-bit security.  

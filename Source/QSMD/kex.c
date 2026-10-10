@@ -9,6 +9,9 @@
 #include "stringutils.h"
 #include "timestamp.h"
 
+/** KEX receive timeout in milliseconds. */
+#define QSMD_KEX_RECEIVE_TIMEOUT 30000
+
 #define KEX_CONNECT_REQUEST_MESSAGE_SIZE (QSMD_KEYID_SIZE + QSMD_CONFIG_SIZE + QSMD_HASH_SIZE + QSMD_ASYMMETRIC_SIGNATURE_SIZE)
 #define KEX_CONNECT_REQUEST_PACKET_SIZE (QSMD_HEADER_SIZE + KEX_CONNECT_REQUEST_MESSAGE_SIZE)
 #define KEX_CONNECT_RESPONSE_MESSAGE_SIZE (QSMD_ASYMMETRIC_ENCAPSULATION_KEY_SIZE + QSMD_HASH_SIZE + QSMD_ASYMMETRIC_SIGNATURE_SIZE)
@@ -963,6 +966,7 @@ qsmd_errors qsmd_kex_duplex_client_key_exchange(qsmd_kex_duplex_client_state* kc
 
 	if (kcs != NULL && cns != NULL)
 	{
+		(void)qsc_socket_set_option(&cns->target, qsc_socket_protocol_socket, qsc_socket_option_receive_time_out, QSMD_KEX_RECEIVE_TIMEOUT);
 		brqt = (uint8_t*)qsc_memutils_malloc(lrqt);
 
 		if (brqt != NULL)
@@ -1092,10 +1096,6 @@ qsmd_errors qsmd_kex_duplex_client_key_exchange(qsmd_kex_duplex_client_state* kc
 									/* verify the exchange  */
 									qerr = kex_duplex_client_establish_verify(kcs, cns, &resp);
 								}
-								else
-								{
-									qerr = qsmd_error_packet_unsequenced;
-								}
 							}
 							else
 							{
@@ -1126,6 +1126,7 @@ qsmd_errors qsmd_kex_duplex_client_key_exchange(qsmd_kex_duplex_client_state* kc
 		}
 
 		kex_duplex_client_reset(kcs);
+		(void)qsc_socket_set_option(&cns->target, qsc_socket_protocol_socket, qsc_socket_option_receive_time_out, 0);
 
 		if (qerr != qsmd_error_none)
 		{
@@ -1135,7 +1136,6 @@ qsmd_errors qsmd_kex_duplex_client_key_exchange(qsmd_kex_duplex_client_state* kc
 				qsc_socket_shut_down(&cns->target, qsc_socket_shut_down_flag_both);
 			}
 
-			qsmd_connection_state_dispose(cns);
 		}
 	}
 	else
@@ -1164,6 +1164,7 @@ qsmd_errors qsmd_kex_duplex_server_key_exchange(qsmd_kex_duplex_server_state* ks
 
 	if (kss != NULL && cns != NULL)
 	{
+		(void)qsc_socket_set_option(&cns->target, qsc_socket_protocol_socket, qsc_socket_option_receive_time_out, QSMD_KEX_RECEIVE_TIMEOUT);
 		brsp = (uint8_t*)qsc_memutils_malloc(lrsp);
 
 		if (brsp != NULL)
@@ -1315,6 +1316,7 @@ qsmd_errors qsmd_kex_duplex_server_key_exchange(qsmd_kex_duplex_server_state* ks
 		}
 
 		kex_duplex_server_reset(kss);
+		(void)qsc_socket_set_option(&cns->target, qsc_socket_protocol_socket, qsc_socket_option_receive_time_out, 0);
 
 		if (qerr != qsmd_error_none)
 		{
@@ -1324,7 +1326,6 @@ qsmd_errors qsmd_kex_duplex_server_key_exchange(qsmd_kex_duplex_server_state* ks
 				qsc_socket_shut_down(&cns->target, qsc_socket_shut_down_flag_both);
 			}
 
-			qsmd_connection_state_dispose(cns);
 		}
 	}
 	else
